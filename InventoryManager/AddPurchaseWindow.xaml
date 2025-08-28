@@ -1,0 +1,45 @@
+﻿<Window x:Class="InventoryManager.AddPurchaseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Catat Pembelian / Tambah Stok" Height="500" Width="800" WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="10">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <TextBlock Text="Total Pembelian: " FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBlock x:Name="TotalPurchaseTextBlock" Text="Rp 0" FontWeight="Bold" VerticalAlignment="Center" FontSize="16"/>
+            <Button x:Name="SavePurchaseButton" Content="Simpan &amp; Tambah Stok" Margin="10,0,0,0" Click="SavePurchaseButton_Click"/>
+        </StackPanel>
+
+        <Grid DockPanel.Dock="Top">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,5,10">
+                <Label Content="Nama Pemasok (Opsional):"/>
+                <TextBox x:Name="SupplierNameTextBox"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Margin="5,0,0,10">
+                <Label Content="Tanggal Pembelian:"/>
+                <DatePicker x:Name="PurchaseDatePicker"/>
+            </StackPanel>
+        </Grid>
+
+        <GroupBox Header="Item Pembelian">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,5">
+                    <Label Content="Scan Barcode:" VerticalAlignment="Center"/>
+                    <TextBox x:Name="BarcodeScanTextBox" Width="200" KeyDown="BarcodeScanTextBox_KeyDown"/>
+                </StackPanel>
+                <DataGrid x:Name="PurchaseItemsDataGrid" AutoGenerateColumns="False" CanUserAddRows="True"
+                          InitializingNewItem="PurchaseItemsDataGrid_InitializingNewItem">
+                    <DataGrid.Columns>
+                        <DataGridComboBoxColumn Header="Produk" x:Name="ProductColumn" DisplayMemberPath="ProductName" SelectedValuePath="ProductId" SelectedValueBinding="{Binding ProductId}" Width="*"/>
+                        <DataGridTextColumn Header="Jumlah" Binding="{Binding Quantity}" Width="80"/>
+                        <DataGridComboBoxColumn Header="Satuan" x:Name="UnitColumn" DisplayMemberPath="UnitName" SelectedValueBinding="{Binding UnitName}" Width="100"/>
+                        <DataGridTextColumn Header="Harga Modal/Satuan" Binding="{Binding CostPrice, StringFormat=N0}" Width="150"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </GroupBox>
+    </DockPanel>
+</Window>

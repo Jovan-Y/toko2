@@ -1,0 +1,56 @@
+﻿<Window x:Class="InventoryManager.ReportsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Laporan &amp; Rekap" Height="600" Width="900">
+    <TabControl>
+        <TabItem Header="Laporan Penjualan">
+            <DockPanel Margin="10">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                    <Label Content="Periode:" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="PeriodComboBox" Width="100" SelectionChanged="PeriodComboBox_SelectionChanged">
+                        <ComboBoxItem Content="Harian"/>
+                        <ComboBoxItem Content="Bulanan"/>
+                        <ComboBoxItem Content="Tahunan"/>
+                    </ComboBox>
+                    <DatePicker x:Name="RecapDatePicker" Margin="10,0,0,0" SelectedDateChanged="RecapDatePicker_SelectedDateChanged"/>
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Bottom" x:Name="TotalRecapTextBlock" Text="Total Penjualan: Rp 0" FontWeight="Bold" FontSize="16" HorizontalAlignment="Right" Margin="0,10,0,0"/>
+                <DataGrid x:Name="RecapDataGrid" IsReadOnly="True" AutoGenerateColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Waktu" Binding="{Binding SaleDate, StringFormat='HH:mm:ss'}"/>
+                        <DataGridTextColumn Header="Kasir" Binding="{Binding CashierName}" Width="*"/>
+                        <DataGridTextColumn Header="Total" Binding="{Binding TotalAmount, StringFormat=C, ConverterCulture=id-ID}"/>
+                        <DataGridTextColumn Header="Metode" Binding="{Binding PaymentMethod}"/>
+                        <DataGridTextColumn Header="Dibayar" Binding="{Binding AmountPaid, StringFormat=C, ConverterCulture=id-ID}"/>
+                        <DataGridTextColumn Header="Pelanggan" Binding="{Binding CustomerName}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </TabItem>
+        <TabItem Header="Laporan Pembelian">
+            <DockPanel Margin="10">
+                <Button x:Name="AddPurchaseButton" DockPanel.Dock="Top" Content="Catat Pembelian Baru..." Margin="0,0,0,10" Click="AddPurchaseButton_Click"/>
+                <DataGrid x:Name="PurchaseHistoryDataGrid" IsReadOnly="True" AutoGenerateColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tanggal" Binding="{Binding PurchaseDate, StringFormat='dd/MM/yyyy'}"/>
+                        <DataGridTextColumn Header="Pemasok" Binding="{Binding SupplierName}" Width="*"/>
+                        <DataGridTextColumn Header="Total" Binding="{Binding TotalAmount, StringFormat=C, ConverterCulture=id-ID}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </TabItem>
+        <TabItem Header="Laporan Kredit">
+            <DockPanel Margin="10">
+                <DataGrid x:Name="CreditDataGrid" IsReadOnly="True" AutoGenerateColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tanggal" Binding="{Binding SaleDate, StringFormat='dd/MM/yyyy'}"/>
+                        <DataGridTextColumn Header="Pelanggan" Binding="{Binding CustomerName}" Width="*"/>
+                        <DataGridTextColumn Header="Total Utang" Binding="{Binding CreditAmount, StringFormat=C, ConverterCulture=id-ID}"/>
+                        <DataGridTextColumn Header="Lama Kredit (Hari)" Binding="{Binding CreditDuration}"/>
+                        <DataGridTextColumn Header="Kasir" Binding="{Binding CashierName}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </TabItem>
+    </TabControl>
+</Window>

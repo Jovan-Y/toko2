@@ -1,0 +1,27 @@
+﻿<Window x:Class="InventoryManager.ManageUnitsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kelola Jenis Satuan" Height="400" Width="500" WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <ListBox x:Name="UnitsListBox" Grid.Column="0" DisplayMemberPath="UnitName" SelectionChanged="UnitsListBox_SelectionChanged"/>
+
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+
+        <StackPanel Grid.Column="2" x:Name="DetailPanel" IsEnabled="False">
+            <Label Content="Nama Satuan:"/>
+            <TextBox x:Name="UnitNameTextBox"/>
+            <Label Content="Default Peringatan Stok Rendah:"/>
+            <TextBox x:Name="DefaultThresholdTextBox"/>
+            <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
+                <Button x:Name="SaveButton" Content="Simpan" Click="SaveButton_Click"/>
+                <Button x:Name="NewButton" Content="Baru" Margin="5,0,0,0" Click="NewButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Window>

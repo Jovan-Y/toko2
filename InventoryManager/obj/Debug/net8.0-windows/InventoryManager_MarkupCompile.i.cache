@@ -1,0 +1,20 @@
+﻿InventoryManager
+1.0.0.0
+
+winexe
+C#
+.cs
+C:\Users\Jovan Barracuda Yusa\source\repos\InventoryManager\InventoryManager\obj\Debug\net8.0-windows\
+InventoryManager
+none
+false
+TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
+C:\Users\Jovan Barracuda Yusa\source\repos\InventoryManager\InventoryManager\App.xaml
+131215998712
+
+18-845529150
+220-1328136912
+AddProductWindow.xaml;AddPurchaseWindow.xaml;DataAnalysisWindow.xaml;InputDialog.xaml;LinkProductWindow.xaml;MainWindow.xaml;ManageBundleWindow.xaml;ManageUnitsWindow.xaml;PriceLabelPrintWindow.xaml;PrintQueueWindow.xaml;ReportsWindow.xaml;ToDoListWindow.xaml;UserManagerWindow.xaml;
+
+True
+

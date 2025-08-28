@@ -1,0 +1,124 @@
+﻿<Window x:Class="InventoryManager.ManageBundleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kelola Produk Bundle" Height="600" Width="900"
+        WindowStartupLocation="CenterOwner" Background="#F0F2F5">
+    <Window.Resources>
+        <!-- Styles for modern UI -->
+        <Style TargetType="Border" x:Key="MainBorderStyle">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="HeaderTextStyle">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#333"/>
+        </Style>
+        <Style TargetType="Button" x:Key="PrimaryButtonStyle">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#005A9E"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Text="Buat atau Edit Produk Bundle" FontSize="22" FontWeight="Bold" Margin="0,0,0,20" Foreground="#1E1E1E"/>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel: Bundle Details & Available Products -->
+            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                <Border Style="{StaticResource MainBorderStyle}" Padding="15">
+                    <StackPanel>
+                        <TextBlock Text="Nama Bundle:" Style="{StaticResource HeaderTextStyle}"/>
+                        <TextBox x:Name="BundleNameTextBox" Margin="0,5,0,15" FontSize="14"/>
+                        <TextBlock Text="Harga Jual Bundle:" Style="{StaticResource HeaderTextStyle}"/>
+                        <TextBox x:Name="BundlePriceTextBox" Margin="0,5,0,15" FontSize="14"/>
+                        <TextBlock Text="Barcode Bundle (Opsional):" Style="{StaticResource HeaderTextStyle}"/>
+                        <TextBox x:Name="BundleBarcodeTextBox" Margin="0,5,0,0" FontSize="14"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource MainBorderStyle}" Padding="15" Margin="0,15,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Pilih Komponen:" Style="{StaticResource HeaderTextStyle}" Margin="0,0,0,10"/>
+                        <TextBox x:Name="SearchComponentTextBox" Grid.Row="1" Margin="0,0,0,10" TextChanged="SearchComponentTextBox_TextChanged"/>
+                        <ListView x:Name="AvailableProductsListView" Grid.Row="2" Height="150"
+                                  ItemsSource="{Binding AvailableProducts}" DisplayMemberPath="ProductName"
+                                  MouseDoubleClick="AddLinkButton_Click"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- Right Panel: Linked Components -->
+            <Border Grid.Column="1" Style="{StaticResource MainBorderStyle}" Padding="15" Margin="10,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Komponen dalam Bundle Ini:" Style="{StaticResource HeaderTextStyle}" Margin="0,0,0,10"/>
+                    <DataGrid x:Name="LinkedComponentsDataGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False" ItemsSource="{Binding LinkedProducts}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nama Produk" Binding="{Binding ProductName}" Width="*" IsReadOnly="True"/>
+                            <DataGridTemplateColumn Header="Jumlah">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="Auto">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="Hapus" Click="RemoveLinkButton_Click" Background="IndianRed" Foreground="White" Padding="5,2"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Simpan Bundle" Click="SaveButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+            <Button Content="Batal" Click="CancelButton_Click" Margin="10,0,0,0" Background="#6c757d" Foreground="White"/>
+        </StackPanel>
+    </Grid>
+</Window>

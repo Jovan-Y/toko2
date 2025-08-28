@@ -1,0 +1,156 @@
+﻿<Window x:Class="InventoryManager.PrintQueueWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:InventoryManager"
+        mc:Ignorable="d"
+        Title="Cetak Barcode" Height="720" Width="1280" WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="280"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0" Margin="0,0,10,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <GroupBox Grid.Row="0" Header="Pilih Produk">
+                <DockPanel>
+                    <TextBox x:Name="SourceSearchTextBox" DockPanel.Dock="Top" Margin="5" TextChanged="SourceSearchTextBox_TextChanged"/>
+                    <ListView x:Name="SourceItemsListView" Margin="5" SelectionChanged="SourceItemsListView_SelectionChanged">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding ProductName}"/>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </DockPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Row="1" Header="Pilih Satuan untuk Dicetak" Margin="0,10,0,0">
+                <ListView x:Name="UnitsToPrintListView" ItemsSource="{Binding UnitsForSelectedProduct}" Height="150">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}"/>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </GroupBox>
+
+            <Button Grid.Row="2" x:Name="AddItemButton" Content="Tambahkan ke Antrian Cetak" Margin="0,10,0,0" Click="AddItemButton_Click"/>
+        </Grid>
+
+        <StackPanel Grid.Column="1" Margin="0,0,10,0">
+            <GroupBox Header="Pengaturan Cetak">
+                <StackPanel>
+                    <Label Content="Ukuran Kertas (mm):"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="PaperSizeComboBox" SelectionChanged="Settings_Changed"/>
+                        <Button x:Name="DeletePaperSizeButton" Grid.Column="1" Content="❌" Width="25" Margin="5,0,0,0" Background="IndianRed" Foreground="White" Click="DeletePaperSizeButton_Click"/>
+                    </Grid>
+                    <Expander Header="Tambah Ukuran Kertas Kustom" Margin="0,5,0,0">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="PaperWidthTextBox" ToolTip="Lebar (mm)"/>
+                                <TextBox x:Name="PaperHeightTextBox" Grid.Column="1" ToolTip="Tinggi (mm)" Margin="5,0"/>
+                                <Button x:Name="AddPaperSizeButton" Grid.Column="2" Content="➕" Width="25" Click="AddPaperSizeButton_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+
+                    <Label Content="Ukuran Barcode (mm):" Margin="0,10,0,0"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="BarcodeSizeComboBox" SelectionChanged="Settings_Changed"/>
+                        <Button x:Name="DeleteBarcodeSizeButton" Grid.Column="1" Content="❌" Width="25" Margin="5,0,0,0" Background="IndianRed" Foreground="White" Click="DeleteBarcodeSizeButton_Click"/>
+                    </Grid>
+                    <Expander Header="Tambah Ukuran Barcode Kustom" Margin="0,5,0,0">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="BarcodeWidthTextBox" ToolTip="Lebar (mm)"/>
+                                <TextBox x:Name="BarcodeHeightTextBox" Grid.Column="1" ToolTip="Tinggi (mm)" Margin="5,0"/>
+                                <Button x:Name="AddBarcodeSizeButton" Grid.Column="2" Content="➕" Width="25" Click="AddBarcodeSizeButton_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+
+                    <Label Content="Margin Kertas (mm):" Margin="0,10,0,0"/>
+                    <TextBox x:Name="MarginTextBox" Text="10" TextChanged="Settings_Changed"/>
+                    <Separator Margin="0,10"/>
+                    <CheckBox x:Name="ShowNameCheckBox" Content="Tampilkan Nama Produk" IsChecked="True" Checked="Settings_Changed" Unchecked="Settings_Changed"/>
+                    <CheckBox x:Name="ShowPriceCheckBox" Content="Tampilkan Harga" IsChecked="True" Checked="Settings_Changed" Unchecked="Settings_Changed"/>
+                    <Separator Margin="0,5"/>
+                    <CheckBox x:Name="ShowBarcodeVisualCheckBox" Content="Cetak Barcode" IsChecked="True" Checked="Settings_Changed" Unchecked="Settings_Changed"/>
+                    <CheckBox x:Name="ShowBarcodeTextCheckBox" Content="Sertakan Teks pada Barcode" IsChecked="True" Margin="20,0,0,0" IsEnabled="{Binding IsChecked, ElementName=ShowBarcodeVisualCheckBox}" Checked="Settings_Changed" Unchecked="Settings_Changed"/>
+                    <Separator Margin="0,10"/>
+                    <TextBlock x:Name="FitInfoTextBlock" TextWrapping="Wrap" FontWeight="Bold" Text="Kalkulasi: -"/>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="Daftar Cetak" Margin="0,10,0,0">
+                <DataGrid x:Name="PrintQueueDataGrid" ItemsSource="{Binding PrintQueue}" AutoGenerateColumns="False" CanUserAddRows="False" Height="150">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Item" Binding="{Binding DisplayName}" Width="*" IsReadOnly="True"/>
+                        <DataGridTemplateColumn Header="Jumlah">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding Copies, UpdateSourceTrigger=PropertyChanged}" Width="40" TextChanged="Copies_TextChanged"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Hapus" Click="RemoveItemButton_Click" Background="IndianRed" Foreground="White" Padding="5,2"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </GroupBox>
+            <Button x:Name="PrintButton" Content="Cetak" Margin="0,10,0,0" Height="30" Background="DodgerBlue" Foreground="White" Click="PrintButton_Click"/>
+        </StackPanel>
+
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <GroupBox Header="Pratinjau Cetak" Grid.Row="0">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <Border BorderBrush="Gray" BorderThickness="1" Background="White"
+                        x:Name="PaperPreviewBorder" HorizontalAlignment="Center" VerticalAlignment="Top">
+                        <Canvas x:Name="PreviewCanvas"/>
+                    </Border>
+                </ScrollViewer>
+            </GroupBox>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0">
+                <Button x:Name="PreviousPageButton" Content="&lt; Sebelumnya" Click="PreviousPageButton_Click"/>
+                <TextBlock x:Name="PageInfoTextBlock" Text="Halaman 1 dari 1" VerticalAlignment="Center" Margin="10,0"/>
+                <Button x:Name="NextPageButton" Content="Berikutnya &gt;" Click="NextPageButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
