@@ -2,13 +2,29 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Drawing;
+using System.Drawing.Printing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using ZXing;
+using ZXing.Common;
+using ZXing.Windows.Compatibility;
+using DrawingBrushes = System.Drawing.Brushes;
+using WinFormsDialogResult = System.Windows.Forms.DialogResult;
+using WinFormsPrintDialog = System.Windows.Forms.PrintDialog;
+// Namespace untuk kelas Product dari MainWindow
+// Pastikan kelas Product di MainWindow.xaml.cs memiliki properti SKU
+// using static InventoryManager.MainWindow; 
+
+// Alias untuk menghindari konflik nama
+using WpfBrushes = System.Windows.Media.Brushes;
+using WpfPrintDialog = System.Windows.Controls.PrintDialog;
+
 
 namespace InventoryManager
 {
@@ -28,10 +44,12 @@ namespace InventoryManager
         private int _printQueueTotalItems;
         public string PrintQueueTitle => $"Daftar Cetak ({_printQueueTotalItems} item)";
 
-        // --- PAGINATION FIELDS ---
+        // --- PAGINATION & PRINTING FIELDS ---
         private int _currentPage = 1;
         private int _totalPages = 1;
         private int _labelsPerPage = 1;
+        private List<PrintQueueItem> _flattenedPrintQueue = new List<PrintQueueItem>();
+        private int _currentPrintItemIndex = 0;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -100,11 +118,15 @@ namespace InventoryManager
 
             _allPrintableItems = allConversions
                 .Where(c => c.SellingPrice > 0)
-                .Select(c => new PrintQueueItem
-                {
-                    ProductName = allProducts.FirstOrDefault(p => p.ProductId == c.ProductID)?.ProductName ?? "N/A",
-                    UnitName = c.UnitName,
-                    Price = c.SellingPrice
+                .Select(c => {
+                    var product = allProducts.FirstOrDefault(p => p.ProductId == c.ProductID);
+                    return new PrintQueueItem
+                    {
+                        ProductName = product?.ProductName ?? "N/A",
+                        SKU = product?.SKU ?? "", // Mengambil SKU
+                        UnitName = c.UnitName,
+                        Price = c.SellingPrice
+                    };
                 }).ToList();
         }
 
@@ -132,6 +154,7 @@ namespace InventoryManager
                     {
                         DisplayName = $"{item.UnitName} ({item.Price:C0})",
                         UnitName = item.UnitName,
+                        SKU = item.SKU, // SKU ditambahkan
                         Price = item.Price,
                         IsSelected = true
                     });
@@ -154,9 +177,12 @@ namespace InventoryManager
                 return;
             }
 
+            string sku = selectedUnits.FirstOrDefault()?.SKU ?? selectedProduct.SKU;
+
             var newItem = new PrintQueueItem
             {
                 ProductName = selectedProduct.ProductName,
+                SKU = sku,
                 Copies = 1,
                 Units = selectedUnits.Select(u => new UnitPricingInfo { UnitName = u.UnitName, Price = u.Price }).ToList()
             };
@@ -181,36 +207,6 @@ namespace InventoryManager
         private void Copies_TextChanged(object sender, TextChangedEventArgs e) => GeneratePreview();
         private void Settings_Changed(object sender, RoutedEventArgs e) => GeneratePreview();
 
-        private void PrintButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!PrintQueue.Any(i => i.Copies > 0))
-            {
-                MessageBox.Show("Antrian cetak kosong.", "Informasi", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var paperSize = GetCurrentPaperSize();
-            var labelSize = GetCurrentLabelSize();
-
-            if (paperSize == null)
-            {
-                MessageBox.Show("Ukuran kertas belum dipilih.", "Input Tidak Valid", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (labelSize == null)
-            {
-                MessageBox.Show("Ukuran label belum dipilih.", "Input Tidak Valid", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            PrintDialog printDialog = new PrintDialog();
-            if (printDialog.ShowDialog() == true)
-            {
-                var paginator = new LabelPaginator(PrintQueue.ToList(), paperSize, labelSize, GetCurrentMargin());
-                printDialog.PrintDocument(paginator, "Cetak Label Harga");
-            }
-        }
-
         #endregion
 
         #region Pagination Controls
@@ -231,7 +227,6 @@ namespace InventoryManager
                 GeneratePreview();
             }
         }
-
         #endregion
 
         #region Size Management & Settings
@@ -342,8 +337,8 @@ namespace InventoryManager
                 return;
             }
 
-            var allItemsToPrint = PrintQueue.SelectMany(item => Enumerable.Repeat(item, item.Copies)).ToList();
-            _totalPages = (int)Math.Ceiling((double)allItemsToPrint.Count / _labelsPerPage);
+            _flattenedPrintQueue = PrintQueue.SelectMany(item => Enumerable.Repeat(item, item.Copies)).ToList();
+            _totalPages = (int)Math.Ceiling((double)_flattenedPrintQueue.Count / _labelsPerPage);
             if (_totalPages == 0) _totalPages = 1;
             if (_currentPage > _totalPages) _currentPage = _totalPages;
 
@@ -352,12 +347,12 @@ namespace InventoryManager
             PreviousPageButton.IsEnabled = _currentPage > 1;
             NextPageButton.IsEnabled = _currentPage < _totalPages;
 
-            var itemsToPreview = allItemsToPrint.Skip((_currentPage - 1) * _labelsPerPage).Take(_labelsPerPage).ToList();
+            var itemsToPreview = _flattenedPrintQueue.Skip((_currentPage - 1) * _labelsPerPage).Take(_labelsPerPage).ToList();
 
-            if (!itemsToPreview.Any() && allItemsToPrint.Any())
+            if (!itemsToPreview.Any() && _flattenedPrintQueue.Any())
             {
                 _currentPage = 1;
-                itemsToPreview = allItemsToPrint.Skip(0).Take(_labelsPerPage).ToList();
+                itemsToPreview = _flattenedPrintQueue.Skip(0).Take(_labelsPerPage).ToList();
             }
 
             if (!itemsToPreview.Any())
@@ -365,6 +360,7 @@ namespace InventoryManager
                 itemsToPreview.Add(new PrintQueueItem
                 {
                     ProductName = "Nama Produk",
+                    SKU = "123456789",
                     Units = new List<UnitPricingInfo> { new UnitPricingInfo { UnitName = "Pcs", Price = 10000 } }
                 });
             }
@@ -379,7 +375,7 @@ namespace InventoryManager
                     Width = labelW_mm * scale,
                     Height = labelH_mm * scale,
                     Child = labelVisual,
-                    Stretch = Stretch.Fill
+                    Stretch = System.Windows.Media.Stretch.Fill
                 };
 
                 Canvas.SetLeft(viewBox, (margin_mm + (i % cols) * labelW_mm) * scale);
@@ -393,12 +389,13 @@ namespace InventoryManager
             var border = new Border
             {
                 Padding = new Thickness(4),
-                Background = Brushes.White
+                Background = WpfBrushes.White
             };
 
             var mainGrid = new Grid();
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Nama
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Harga
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Barcode
 
             double.TryParse(ProductNameFontSizeTextBox.Text, out double pNameFont);
             double.TryParse(PriceFontSizeTextBox.Text, out double priceFont);
@@ -434,6 +431,20 @@ namespace InventoryManager
                 pricePanel.Children.Add(priceBlock);
             }
 
+            var barcodeSource = GenerateBarcodeImageSource(item.SKU);
+            if (barcodeSource != null)
+            {
+                var barcodeImage = new System.Windows.Controls.Image
+                {
+                    Source = barcodeSource,
+                    Stretch = System.Windows.Media.Stretch.Uniform,
+                    MinHeight = 20,
+                    Margin = new Thickness(0, 4, 0, 0)
+                };
+                Grid.SetRow(barcodeImage, 2);
+                mainGrid.Children.Add(barcodeImage);
+            }
+
             var centeringGrid = new Grid { Children = { mainGrid } };
             mainGrid.VerticalAlignment = VerticalAlignment.Center;
 
@@ -446,12 +457,139 @@ namespace InventoryManager
             width = 0; height = 0;
             var parts = text.ToLower().Split('x');
             if (parts.Length != 2) return false;
-            return double.TryParse(parts[0], out width) && double.TryParse(parts[1], out height);
+            return double.TryParse(parts[0], NumberStyles.Any, CultureInfo.InvariantCulture, out width) &&
+                   double.TryParse(parts[1], NumberStyles.Any, CultureInfo.InvariantCulture, out height);
         }
 
         private PaperSize GetCurrentPaperSize() => PaperSizeComboBox.SelectedItem as PaperSize;
         private string GetCurrentLabelSize() => LabelSizeComboBox.SelectedItem as string;
-        private double GetCurrentMargin() => double.TryParse(MarginTextBox.Text, out double m) ? m : 0;
+        private double GetCurrentMargin() => double.TryParse(MarginTextBox.Text, out double m) ? m : 2.0;
+
+        #endregion
+
+        #region Printing Logic (System.Drawing)
+
+        private void PrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            _flattenedPrintQueue = PrintQueue.SelectMany(item => Enumerable.Repeat(item, item.Copies)).ToList();
+
+            if (_flattenedPrintQueue.Count == 0)
+            {
+                MessageBox.Show("Antrian cetak kosong.", "Informasi", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            _currentPrintItemIndex = 0;
+
+            using (var printDialog = new WinFormsPrintDialog())
+            {
+                PrintDocument pd = new PrintDocument();
+                pd.PrintPage += pd_PrintPage;
+
+                printDialog.Document = pd;
+
+                if (printDialog.ShowDialog() == WinFormsDialogResult.OK)
+                {
+                    try
+                    {
+                        pd.Print();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Gagal mencetak: " + ex.Message, "Error Cetak", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+
+        private void pd_PrintPage(object sender, PrintPageEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+
+            var labelSizeStr = GetCurrentLabelSize();
+            if (!TryParseMm(labelSizeStr, out double labelW_mm, out double labelH_mm)) return;
+
+            float labelWidth = (float)(labelW_mm / 25.4 * 100);
+            float labelHeight = (float)(labelH_mm / 25.4 * 100);
+
+            RectangleF printableArea = e.MarginBounds;
+
+            int cols = (int)(printableArea.Width / labelWidth);
+            int rows = (int)(printableArea.Height / labelHeight);
+
+            for (int row = 0; row < rows; row++)
+            {
+                for (int col = 0; col < cols; col++)
+                {
+                    if (_currentPrintItemIndex >= _flattenedPrintQueue.Count) break;
+
+                    var item = _flattenedPrintQueue[_currentPrintItemIndex];
+
+                    float x = printableArea.Left + (col * labelWidth);
+                    float y = printableArea.Top + (row * labelHeight);
+
+                    using (Font nameFont = new Font("Arial", 8, System.Drawing.FontStyle.Bold))
+                    using (Font priceFont = new Font("Arial", 9, System.Drawing.FontStyle.Regular))
+                    {
+                        g.DrawString(item.ProductName, nameFont, DrawingBrushes.Black, new RectangleF(x + 2, y + 2, labelWidth - 4, labelHeight * 0.4f));
+
+                        string priceText = string.Join("\n", item.Units.Select(u => $"{u.Price:C0} / {u.UnitName}"));
+                        g.DrawString(priceText, priceFont, DrawingBrushes.Black, new RectangleF(x + 2, y + 20, labelWidth - 4, labelHeight * 0.5f));
+
+                        using (Bitmap barcodeBitmap = GenerateBarcode(item.SKU))
+                        {
+                            if (barcodeBitmap != null)
+                            {
+                                g.DrawImage(barcodeBitmap, new RectangleF(x + 5, y + 50, labelWidth - 10, labelHeight * 0.3f));
+                            }
+                        }
+                    }
+
+                    _currentPrintItemIndex++;
+                }
+                if (_currentPrintItemIndex >= _flattenedPrintQueue.Count) break;
+            }
+
+            e.HasMorePages = _currentPrintItemIndex < _flattenedPrintQueue.Count;
+        }
+
+        private Bitmap GenerateBarcode(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            try
+            {
+                var barcodeWriter = new BarcodeWriter
+                {
+                    Format = BarcodeFormat.CODE_128,
+                    Options = new EncodingOptions { Height = 30, Width = 100, Margin = 0, PureBarcode = true }
+                };
+                return barcodeWriter.Write(text);
+            }
+            catch { return null; }
+        }
+
+        private ImageSource GenerateBarcodeImageSource(string text)
+        {
+            using (Bitmap bitmap = GenerateBarcode(text))
+            {
+                if (bitmap == null) return null;
+                using (var stream = new MemoryStream())
+                {
+                    bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+                    stream.Position = 0;
+                    var bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                    bitmapImage.Freeze();
+                    return bitmapImage;
+                }
+            }
+        }
 
         #endregion
 
@@ -460,11 +598,12 @@ namespace InventoryManager
         public class PrintQueueItem : INotifyPropertyChanged
         {
             public string ProductName { get; set; } = "";
+            public string SKU { get; set; } = "";
             public string UnitName { get; set; } = "";
             public decimal Price { get; set; }
             public List<UnitPricingInfo> Units { get; set; } = new List<UnitPricingInfo>();
 
-            private int _copies;
+            private int _copies = 1;
             public int Copies
             {
                 get => _copies;
@@ -486,6 +625,7 @@ namespace InventoryManager
         {
             public string DisplayName { get; set; } = "";
             public string UnitName { get; set; } = "";
+            public string SKU { get; set; } = "";
             public decimal Price { get; set; }
             public bool IsSelected { get; set; }
         }
@@ -499,131 +639,6 @@ namespace InventoryManager
             public override string ToString() => $"{Name} ({Width}x{Height} mm)";
         }
 
-        #endregion
-
-        #region Paginator Class
-
-        public class LabelPaginator : DocumentPaginator
-        {
-            private readonly List<PrintQueueItem> _items;
-            private readonly Size _paperSize;
-            private readonly Size _labelSize;
-            private readonly double _margin;
-            private readonly int _labelsPerPage;
-            private readonly int _pageCount;
-
-            public LabelPaginator(List<PrintQueueItem> items, PaperSize paper, string labelSizeStr, double margin)
-            {
-                _items = items.SelectMany(item => Enumerable.Repeat(item, item.Copies)).ToList();
-                _paperSize = new Size(paper.Width * MmToDip, paper.Height * MmToDip);
-
-                TryParseMm(labelSizeStr, out double labelW, out double labelH);
-                _labelSize = new Size(labelW * MmToDip, labelH * MmToDip);
-                _margin = margin * MmToDip;
-
-                int cols = (int)((_paperSize.Width - (2 * _margin)) / _labelSize.Width);
-                int rows = (int)((_paperSize.Height - (2 * _margin)) / _labelSize.Height);
-                _labelsPerPage = cols * rows > 0 ? cols * rows : 1;
-                _pageCount = (int)Math.Ceiling((double)_items.Count / _labelsPerPage);
-            }
-
-            public override DocumentPage GetPage(int pageNumber)
-            {
-                var canvas = new Canvas();
-
-                int startIndex = pageNumber * _labelsPerPage;
-                var itemsOnPage = _items.Skip(startIndex).Take(_labelsPerPage).ToList();
-                int cols = (int)((_paperSize.Width - (2 * _margin)) / _labelSize.Width);
-                if (cols == 0) cols = 1;
-
-                for (int i = 0; i < itemsOnPage.Count; i++)
-                {
-                    var item = itemsOnPage[i];
-                    var labelVisual = CreateLabelVisual(item);
-
-                    double x = _margin + (i % cols) * _labelSize.Width;
-                    double y = _margin + (i / cols) * _labelSize.Height;
-
-                    Canvas.SetLeft(labelVisual, x);
-                    Canvas.SetTop(labelVisual, y);
-                    canvas.Children.Add(labelVisual);
-                }
-
-                canvas.Measure(_paperSize);
-                canvas.Arrange(new Rect(_paperSize));
-
-                return new DocumentPage(canvas);
-            }
-
-            public override bool IsPageCountValid => true;
-            public override int PageCount => _pageCount;
-            public override Size PageSize { get => _paperSize; set => throw new NotImplementedException(); }
-            public override IDocumentPaginatorSource Source => null;
-
-            private FrameworkElement CreateLabelVisual(PrintQueueItem item)
-            {
-                var border = new Border
-                {
-                    Width = _labelSize.Width,
-                    Height = _labelSize.Height,
-                    Background = Brushes.White,
-                    BorderBrush = Brushes.Black,
-                    BorderThickness = new Thickness(0.5),
-                    Padding = new Thickness(2)
-                };
-
-                var mainStackPanel = new StackPanel
-                {
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                };
-
-                var productNameBlock = new TextBlock
-                {
-                    Text = item.ProductName,
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 12,
-                    TextWrapping = TextWrapping.Wrap,
-                    TextAlignment = TextAlignment.Center
-                };
-                mainStackPanel.Children.Add(productNameBlock);
-
-                foreach (var unit in item.Units)
-                {
-                    var priceBlock = new TextBlock
-                    {
-                        Text = $"{unit.Price:C0} / {unit.UnitName}",
-                        FontSize = 14,
-                        FontWeight = FontWeights.Normal,
-                        TextWrapping = TextWrapping.Wrap,
-                        TextAlignment = TextAlignment.Center
-                    };
-                    mainStackPanel.Children.Add(priceBlock);
-                }
-
-                var viewBox = new Viewbox
-                {
-                    Child = mainStackPanel,
-                    Stretch = Stretch.Uniform,
-                    StretchDirection = StretchDirection.DownOnly
-                };
-
-                border.Child = viewBox;
-
-                border.Measure(new Size(_labelSize.Width, _labelSize.Height));
-                border.Arrange(new Rect(new Size(_labelSize.Width, _labelSize.Height)));
-
-                return border;
-            }
-
-            private bool TryParseMm(string text, out double width, out double height)
-            {
-                width = 0; height = 0;
-                var parts = text.ToLower().Split('x');
-                if (parts.Length != 2) return false;
-                return double.TryParse(parts[0], out width) && double.TryParse(parts[1], out height);
-            }
-        }
         #endregion
     }
 }

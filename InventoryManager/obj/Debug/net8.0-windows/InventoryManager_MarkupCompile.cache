@@ -16,5 +16,5 @@ C:\Users\Jovan Barracuda Yusa\source\repos\InventoryManager\InventoryManager\App
 220-1328136912
 AddProductWindow.xaml;AddPurchaseWindow.xaml;DataAnalysisWindow.xaml;InputDialog.xaml;LinkProductWindow.xaml;MainWindow.xaml;ManageBundleWindow.xaml;ManageUnitsWindow.xaml;PriceLabelPrintWindow.xaml;PrintQueueWindow.xaml;ReportsWindow.xaml;ToDoListWindow.xaml;UserManagerWindow.xaml;
 
-False
+True
 
